@@ -1,0 +1,7 @@
+Goal :
+Build a fast, paginated backend API for browsing 200,000 products, with category filtering. It must handle real-time data changes (inserts/updates) without showing duplicate or missing products during pagination.
+
+Points to Keep in Mind :
+1 :- Pagination Strategy
+2 :- Database Performance
+3 :- Fast Seeding
