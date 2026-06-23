@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeVector Product Browser</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Products</h1>
+            <div class="filters">
+                <select id="category-select">
+                    <option value="">All Categories</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Home">Home</option>
+                    <option value="Books">Books</option>
+                    <option value="Toys">Toys</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Beauty">Beauty</option>
+                    <option value="Health">Health</option>
+                    <option value="Automotive">Automotive</option>
+                    <option value="Grocery">Grocery</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="product-list" class="grid">
+            <!-- Products will be injected here -->
+        </div>
+
+        <div class="loading" id="loading-indicator">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="load-more-container">
+            <button id="load-more-btn" style="display: none;">Load More</button>
+        </div>
+    </div>
+
+    <script>
+        let currentCursor = null;
+        let isLoading = false;
+        const limit = 20;
+
+        const productList = document.getElementById('product-list');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const categorySelect = document.getElementById('category-select');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        async function fetchProducts(reset = false) {
+            if (isLoading) return;
+            isLoading = true;
+            loadingIndicator.style.display = 'flex';
+            
+            if (reset) {
+                currentCursor = null;
+                productList.innerHTML = '';
+                loadMoreBtn.style.display = 'none';
+            }
+
+            const category = categorySelect.value;
+            
+            try {
+                // The URL is relative to the current domain, so it works locally and when deployed
+                const url = new URL('/api/products', window.location.origin);
+                url.searchParams.append('limit', limit);
+                if (category) url.searchParams.append('category', category);
+                
+                // If we have a cursor from the previous request, pass it!
+                // This is the core of cursor pagination.
+                if (currentCursor) url.searchParams.append('cursor', currentCursor);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                renderProducts(data.data);
+
+                // Update the cursor to the new one sent by the backend
+                currentCursor = data.nextCursor;
+                if (currentCursor) {
+                    loadMoreBtn.style.display = 'inline-block';
+                } else {
+                    loadMoreBtn.style.display = 'none'; // No more data!
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                alert('Failed to load products. See console for details.');
+            } finally {
+                isLoading = false;
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function renderProducts(products) {
+            products.forEach(product => {
+                const date = new Date(product.created_at).toLocaleString();
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                // Premium design elements handled by CSS
+                card.innerHTML = `
+                    <div class="card-category">${product.category}</div>
+                    <div class="card-title">${product.name}</div>
+                    <div class="card-price">$${product.price}</div>
+                    <div class="card-meta">Added: ${date}</div>
+                    <div class="card-meta">ID: ${product.id.split('-')[0]}...</div>
+                `;
+                productList.appendChild(card);
+            });
+        }
+
+        // Event listeners
+        loadMoreBtn.addEventListener('click', () => fetchProducts(false));
+        categorySelect.addEventListener('change', () => fetchProducts(true));
+
+        // Initial load on page start
+        fetchProducts(true);
+    </script>
+</body>
+</html>
